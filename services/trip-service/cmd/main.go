@@ -3,56 +3,52 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
+	"net"
 	"os"
 	"os/signal"
-	h "ride-sharing/services/trip-service/internal/infrastructure/http"
 	"ride-sharing/services/trip-service/internal/infrastructure/repository"
 	"ride-sharing/services/trip-service/internal/service"
 	"syscall"
-	"time"
+
+	grpcserver "google.golang.org/grpc"
 )
+
+var GrpAddr = ":9093"
 
 func main() {
 	inmemRepo := repository.NewInmemRepository()
-
 	svc := service.NewService(inmemRepo)
 
-	mux := http.NewServeMux()
-
-	httphandler := h.HttpHandler{Service: svc}
-
-	mux.HandleFunc("POST /preview", httphandler.HandleTripPreview)
-
-	server := &http.Server{
-		Addr:    ":8083",
-		Handler: mux,
-	}
-
-	tripServiceErrors := make(chan error, 1)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		log.Printf("Trip service listening on: %v", server.Addr)
-		tripServiceErrors <- server.ListenAndServe()
+		sigCh := make(chan os.Signal, 1)
+
+		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+		<-sigCh
+
+		cancel()
 	}()
 
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case err := <-tripServiceErrors:
-		log.Printf("Error starting trip service: %v", err)
-
-	case sig := <-shutdown:
-		log.Printf("Servir is shutting down due to %v signal", sig)
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := server.Shutdown(ctx); err != nil {
-			log.Printf("Could not stop server gracefully: %v", err)
-			server.Close()
-		}
+	lis, err := net.Listen("tcp", GrpAddr)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
 	}
 
+	grpcServer := grpcserver.NewServer()
+	//todo iniciar nuestra implementacion del grpc handler
+
+	log.Printf("Starting gRPC server trip service on port %s", lis.Addr().String())
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Printf("failed to serve : %v", err)
+			cancel()
+		}
+	}()
+
+	// wait for the shutdown signal
+	<-ctx.Done()
+	log.Printf("shuting down the server...")
+	grpcServer.GracefulStop()
 }
