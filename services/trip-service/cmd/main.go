@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"ride-sharing/services/trip-service/internal/infrastructure/grpc"
 	"ride-sharing/services/trip-service/internal/infrastructure/repository"
 	"ride-sharing/services/trip-service/internal/service"
 	"syscall"
@@ -35,8 +36,9 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	//iniciando grpc server
 	grpcServer := grpcserver.NewServer()
-	//todo iniciar nuestra implementacion del grpc handler
+	grpc.NewGRPCHandler(grpcServer, svc)
 
 	log.Printf("Starting gRPC server trip service on port %s", lis.Addr().String())
 
