@@ -59,3 +59,6 @@ func (s *service) GetRoute(ctx context.Context, pickup, destination *types.Coord
 
 	return &routesResp, nil
 }
+
+func (s *service) EstimatedPackagesPriceWithRoute(route *tripTypes.OsrmApiResponse) []*domain.RideFareModel
+func (s *service) GenerateTripFares(ctx context.Context, fares []*domain.RideFareModel, userID string) ([]*domain.RideFareModel, error)
