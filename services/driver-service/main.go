@@ -1,7 +1,53 @@
 package main
 
-import "log"
+import (
+	"context"
+	"log"
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
+	grpcserver "google.golang.org/grpc"
+)
+
+var GrpAddr = ":9092"
 
 func main() {
-	log.Println("Driver Service is running...")
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+
+		signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+		<-sigCh
+
+		cancel()
+	}()
+
+	lis, err := net.Listen("tcp", GrpAddr)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	service := NewService()
+
+	//iniciando grpc server
+	grpcServer := grpcserver.NewServer()
+	NewGRPCHandler(grpcServer, service)
+
+	log.Printf("Starting gRPC server Driver service on port %s", lis.Addr().String())
+
+	go func() {
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Printf("failed to serve : %v", err)
+			cancel()
+		}
+	}()
+
+	// wait for the shutdown signal
+	<-ctx.Done()
+	log.Printf("shuting down the server...")
+	grpcServer.GracefulStop()
 }
