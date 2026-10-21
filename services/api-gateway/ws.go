@@ -62,14 +62,6 @@ func handleDriversWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type Driver struct {
-		Id             string `json:"id"`
-		Name           string `json:"name"`
-		ProfilePicture string `json:"profilePicture"`
-		CarPlate       string `json:"carPlate"`
-		PackageSlug    string `json:"packageSlug"`
-	}
-
 	msg := contracts.WSMessage{
 		Type: "driver.cmd.register",
 		Data: Driver{
