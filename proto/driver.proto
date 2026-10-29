@@ -6,7 +6,7 @@ option go_package = "shared/proto/driver;driver";
 
 service DriverService {
   rpc RegisterDriver(RegisterDriverRequest) returns (RegisterDriverResponse);
-  rpc UnRegisterDriver(RegisterDriverRequest) returns (RegisterDriverResponse);
+  rpc UnregisterDriver(RegisterDriverRequest) returns (RegisterDriverResponse);
 }
 
 message RegisterDriverRequest {
@@ -15,7 +15,7 @@ message RegisterDriverRequest {
 }
 
 message RegisterDriverResponse {
-  string driverID = 1;
+  Driver driver = 1;
 }
 
 message Driver {
@@ -23,7 +23,7 @@ message Driver {
     string name = 2;
     string profilePicture = 3;
     string carPlate = 4;
-    string geoHash = 5;
+    string geohash = 5;
     string packageSlug = 6;
     Location location = 7;
 }
